@@ -43,7 +43,11 @@ export function KnownCallsignsModal({ onClose, onPick }: KnownCallsignsModalProp
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     const filtered = (rows ?? []).filter(
-      (r) => !q || r.callsign.toLowerCase().includes(q) || r.name.toLowerCase().includes(q),
+      (r) =>
+        !q ||
+        r.callsign.toLowerCase().includes(q) ||
+        r.name.toLowerCase().includes(q) ||
+        r.location.toLowerCase().includes(q),
     )
     return filtered.sort((a, b) => {
       const cmp = a[sortKey].localeCompare(b[sortKey])
@@ -87,7 +91,7 @@ export function KnownCallsignsModal({ onClose, onPick }: KnownCallsignsModalProp
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="input pl-9"
-            placeholder="Filter by callsign or name"
+            placeholder="Filter by callsign, name, or city"
             autoComplete="off"
           />
         </label>
@@ -111,6 +115,7 @@ export function KnownCallsignsModal({ onClose, onPick }: KnownCallsignsModalProp
                       </button>
                     </th>
                   ))}
+                  <th className="py-2 pr-3 font-medium">Name / Location</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,12 +127,15 @@ export function KnownCallsignsModal({ onClose, onPick }: KnownCallsignsModalProp
                   >
                     <td className="py-2 pr-3">
                       <div className="font-mono text-radio-100">{r.callsign}</div>
-                      {r.name && <div className="text-xs text-radio-400">{r.name}</div>}
                     </td>
                     <td className="py-2 pr-3 tabular-nums text-radio-300">
                       {new Date(r.lastCheckedInAt).toLocaleDateString()}
                     </td>
-                    <td className="py-2 text-radio-300">{r.lastNetName}</td>
+                    <td className="py-2 pr-3 text-radio-300">{r.lastNetName}</td>
+                    <td className="py-2 text-radio-300">
+                      <div>{r.name}</div>
+                      {r.location && <div className="text-xs text-radio-400">{r.location}</div>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
