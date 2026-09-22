@@ -83,6 +83,15 @@ async function main() {
     }
   })
 
+  app.get('/api/known-callsigns', async (_req, res) => {
+    try {
+      res.json(await withClient((c) => repos.listKnownCallsigns(c)))
+    } catch (err) {
+      const e = httpError(err)
+      res.status(e.status).json({ error: e.message })
+    }
+  })
+
   app.get('/api/callsigns/:callsign', async (req, res) => {
     try {
       if (isImporting()) {

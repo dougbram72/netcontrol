@@ -28,6 +28,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T
 }
 
+export type KnownCallsign = {
+  callsign: string
+  name: string
+  location: string
+  lastCheckedInAt: string
+  lastNetName: string
+  checkInCount: number
+}
+
 export type StartNetPayload = {
   name: string
   frequency: string
@@ -49,6 +58,8 @@ export type TemplatePayload = {
 
 export const api = {
   health: () => request<{ ok: boolean }>('/api/health'),
+
+  listKnownCallsigns: () => request<KnownCallsign[]>('/api/known-callsigns'),
 
   listTemplates: () => request<NetTemplate[]>('/api/templates'),
 

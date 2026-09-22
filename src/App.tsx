@@ -1,7 +1,9 @@
-import { CheckInForm } from './components/CheckInForm'
+import { useState } from 'react'
+import { CheckInForm, type CheckInPrefill } from './components/CheckInForm'
 import { FccDbFooter } from './components/FccDbFooter'
 import { Header } from './components/Header'
 import { HistoryList } from './components/HistoryList'
+import { KnownCallsignsModal } from './components/KnownCallsignsModal'
 import { NetSidebar } from './components/NetSidebar'
 import { RollCallList } from './components/RollCallList'
 import { Roster } from './components/Roster'
@@ -41,6 +43,9 @@ export default function App() {
     saveSessionScriptToTemplate,
   } = useNetSession()
 
+  const [showCallsigns, setShowCallsigns] = useState(false)
+  const [prefill, setPrefill] = useState<CheckInPrefill | null>(null)
+
   const elapsed = useElapsed(activeSession?.startedAt)
 
   function handleExport() {
@@ -69,6 +74,7 @@ export default function App() {
   return (
     <div className="flex min-h-full flex-col bg-radio-950">
       <Header
+        onOpenCallsigns={() => setShowCallsigns(true)}
         isLive={!!activeSession}
         netName={activeSession?.name}
         frequency={activeSession?.frequency}
@@ -139,7 +145,7 @@ export default function App() {
                 onAdd={addRollCallStation}
                 onRemove={(id) => void removeRollCallStation(id)}
               />
-              <CheckInForm onAdd={addCheckIn} />
+              <CheckInForm onAdd={addCheckIn} prefill={prefill} />
               <Roster
                 checkIns={activeSession.checkIns}
                 onToggleTraffic={(id) => {
@@ -161,6 +167,20 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {showCallsigns && (
+        <KnownCallsignsModal
+          onClose={() => setShowCallsigns(false)}
+          onPick={
+            activeSession
+              ? (r) => {
+                  setPrefill({ callsign: r.callsign, name: r.name, location: r.location, nonce: Date.now() })
+                  setShowCallsigns(false)
+                }
+              : undefined
+          }
+        />
+      )}
 
       <footer className="border-t border-radio-800 px-4 py-3 text-center text-xs text-radio-500">
         <span className="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-1">

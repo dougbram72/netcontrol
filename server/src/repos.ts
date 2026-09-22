@@ -576,3 +576,41 @@ export async function saveSessionToTemplate(
 }
 
 export type { SessionRollCallStation }
+
+export type KnownCallsign = {
+  callsign: string
+  name: string
+  location: string
+  lastCheckedInAt: string
+  lastNetName: string
+  checkInCount: number
+}
+
+/** Every unique callsign that has checked into a completed net, with its most recent check-in. */
+export async function listKnownCallsigns(client: pg.PoolClient): Promise<KnownCallsign[]> {
+  const res = await client.query<{
+    callsign: string
+    name: string
+    location: string
+    last_at: Date
+    net_name: string
+    cnt: string
+  }>(
+    `SELECT DISTINCT ON (c.callsign)
+            c.callsign, c.name, c.location,
+            c.checked_in_at AS last_at, s.name AS net_name,
+            COUNT(*) OVER (PARTITION BY c.callsign) AS cnt
+       FROM check_ins c
+       JOIN sessions s ON s.id = c.session_id
+      WHERE s.ended_at IS NOT NULL
+      ORDER BY c.callsign, c.checked_in_at DESC`,
+  )
+  return res.rows.map((r) => ({
+    callsign: r.callsign,
+    name: r.name,
+    location: r.location,
+    lastCheckedInAt: new Date(r.last_at).toISOString(),
+    lastNetName: r.net_name,
+    checkInCount: Number(r.cnt),
+  }))
+}

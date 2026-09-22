@@ -1,11 +1,14 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { UserPlus } from 'lucide-react'
 import type { AddCheckInInput } from '../hooks/useNetSession'
 import { useCallsignAutofill } from '../hooks/useCallsignAutofill'
 import type { CheckInStatus } from '../types'
 import { LookupStatus } from './LookupStatus'
 
+export type CheckInPrefill = { callsign: string; name: string; location: string; nonce: number }
+
 type CheckInFormProps = {
+  prefill?: CheckInPrefill | null
   onAdd: (
     input: AddCheckInInput,
   ) =>
@@ -22,7 +25,7 @@ const STATUSES: { value: CheckInStatus; label: string }[] = [
   { value: 'echo-link', label: 'EchoLink' },
 ]
 
-export function CheckInForm({ onAdd }: CheckInFormProps) {
+export function CheckInForm({ onAdd, prefill }: CheckInFormProps) {
   const callsignRef = useRef<HTMLInputElement>(null)
   const [callsign, setCallsign] = useState('')
   const [name, setName] = useState('')
@@ -49,6 +52,14 @@ export function CheckInForm({ onAdd }: CheckInFormProps) {
     setName,
     setLocation,
   })
+
+  useEffect(() => {
+    if (!prefill) return
+    setCallsign(prefill.callsign)
+    setName(prefill.name)
+    setLocation(prefill.location)
+    callsignRef.current?.focus()
+  }, [prefill])
 
   function resetSoft() {
     setCallsign('')
