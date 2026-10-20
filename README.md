@@ -68,6 +68,8 @@ When you **open a net**, the server looks at prior **completed** sessions for th
 
 A station counts as present if they appear in **check-ins** or were marked **responded** on roll call.
 
+When you **close a net** that uses a template, any station that checked in or was added to roll call but isn't on the template yet is added to the end of the template's roll call, so it shows up at the next net.
+
 ## FCC callsign database
 
 On startup (and hourly), the server checks the FCC complete amateur dump:

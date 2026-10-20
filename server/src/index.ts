@@ -243,13 +243,14 @@ async function main() {
 
   app.post('/api/sessions/:id/end', async (req, res) => {
     try {
-      const session = await withClient((c) => repos.endSession(c, req.params.id))
+      const session = await withTransaction((c) => repos.endSession(c, req.params.id))
       if (!session) {
         res.status(404).json({ error: 'Active session not found' })
         return
       }
       await pushSession()
       await pushHistory()
+      await pushTemplates()
       res.json(session)
     } catch (err) {
       const e = httpError(err)

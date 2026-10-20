@@ -3,6 +3,8 @@ import { BookmarkPlus, Play, Trash2 } from 'lucide-react'
 import type { StartNetInput, TemplateInput } from '../hooks/useNetSession'
 import type { NetTemplate, RollCallStation } from '../types'
 import { RollCallEditor } from './RollCallEditor'
+import { LookupStatus } from './LookupStatus'
+import { useCallsignAutofill } from '../hooks/useCallsignAutofill'
 
 type StartNetFormProps = {
   templates: NetTemplate[]
@@ -44,6 +46,15 @@ export function StartNetForm({
   const [rollCall, setRollCall] = useState<RollCallStation[]>([])
   const [templateStatus, setTemplateStatus] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [ncsName, setNcsName] = useState('')
+  const [ncsLocation, setNcsLocation] = useState('')
+  const ncsLookup = useCallsignAutofill({
+    callsign: netControlCallsign,
+    name: ncsName,
+    location: ncsLocation,
+    setName: setNcsName,
+    setLocation: setNcsLocation,
+  })
 
   // Apply template fields when selection changes
   useEffect(() => {
@@ -192,12 +203,21 @@ export function StartNetForm({
             id="ncs"
             value={netControlCallsign}
             onChange={(e) => setNetControlCallsign(e.target.value.toUpperCase())}
+            onBlur={ncsLookup.lookupNow}
             className="input font-mono uppercase tracking-wide"
             placeholder="W1AW"
             required
             autoComplete="off"
             autoFocus
           />
+          <div className="mt-1 flex flex-wrap items-center gap-x-2">
+            {ncsLookup.status === 'found' && (
+              <span className="text-xs text-radio-300">
+                {[ncsName, ncsLocation].filter(Boolean).join(' · ')}
+              </span>
+            )}
+            <LookupStatus status={ncsLookup.status} sourceLabel={ncsLookup.sourceLabel} />
+          </div>
         </Field>
 
         <div>

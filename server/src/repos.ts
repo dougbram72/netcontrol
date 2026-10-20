@@ -249,7 +249,70 @@ export async function endSession(client: pg.PoolClient, id: string): Promise<Net
     [id],
   )
   if (updated.rows.length === 0) return null
+  const templateId = updated.rows[0].template_id
+  if (templateId) await carryForwardToTemplate(client, id, templateId)
   return getSession(client, id)
+}
+
+/**
+ * Append stations from this net that aren't on the template yet — walk-in check-ins and
+ * roll-call stations added mid-net — so they appear on the next net's roll call.
+ */
+async function carryForwardToTemplate(
+  client: pg.PoolClient,
+  sessionId: string,
+  templateId: string,
+): Promise<void> {
+  const existing = await client.query<{ callsign: string }>(
+    `SELECT callsign FROM template_roll_call WHERE template_id = $1`,
+    [templateId],
+  )
+  const onTemplate = new Set(existing.rows.map((r) => r.callsign))
+
+  const roll = await client.query<SessionRollRow>(
+    `SELECT * FROM session_roll_call WHERE session_id = $1 ORDER BY position ASC`,
+    [sessionId],
+  )
+  const checks = await client.query<CheckInRow>(
+    `SELECT * FROM check_ins WHERE session_id = $1 ORDER BY sequence ASC`,
+    [sessionId],
+  )
+  const candidates = [
+    ...roll.rows.map((r) => ({
+      callsign: r.callsign,
+      name: r.name,
+      cityState: r.city_state,
+      permanent: r.permanent,
+    })),
+    ...checks.rows.map((c) => ({
+      callsign: c.callsign,
+      name: c.name,
+      cityState: c.location,
+      permanent: false,
+    })),
+  ]
+
+  const pos = await client.query<{ n: string }>(
+    `SELECT COALESCE(MAX(position), -1) + 1 AS n FROM template_roll_call WHERE template_id = $1`,
+    [templateId],
+  )
+  let position = Number(pos.rows[0].n)
+  let added = 0
+  for (const s of candidates) {
+    if (onTemplate.has(s.callsign)) continue
+    onTemplate.add(s.callsign)
+    await client.query(
+      `INSERT INTO template_roll_call
+         (id, template_id, callsign, name, city_state, permanent, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (template_id, callsign) DO NOTHING`,
+      [createId(), templateId, s.callsign, s.name, s.cityState, s.permanent, position++],
+    )
+    added += 1
+  }
+  if (added > 0) {
+    await client.query(`UPDATE templates SET updated_at = NOW() WHERE id = $1`, [templateId])
+  }
 }
 
 export async function updateSessionNotes(
